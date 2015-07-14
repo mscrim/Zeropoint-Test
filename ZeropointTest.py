@@ -23,12 +23,16 @@ def main():
 
 	mocksFolder = '/Users/Morag/6dFGS/Mock_code/mocks/'
 
+	vArr = []
 	# Read in each mock. Find galaxies within -20 < Dec < 0
 	for i in range(20):
 		mockFile = '%svmock_Gz_highbias_c0p6_%s.dat' % (mocksFolder,str(i).zfill(2))
 		gInC = galaxiesInCircle(mockFile)
-		v = circleVelocity(gInC)
-		print v
+		vArr.append(circleVelocity(gInC))
+	vArr = np.array(vArr)
+	print 'Mean radial v in circle: ', np.mean(vArr)
+	print 'Variance: ',np.var(vArr)
+	print 'Std: ', np.std(vArr)
 
 if __name__ == "__main__":
     main()

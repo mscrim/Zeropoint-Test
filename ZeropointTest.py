@@ -4,6 +4,7 @@ Program to calculate Cosmic Variance in 6dFGSv Zeropoint
 
 import numpy as np
 import cosmologycodes as cc
+from astrofunctions import getRA, getDec
 speedlight = 299792.458
 
 def galaxiesInCircle(mockFile):
@@ -81,6 +82,8 @@ def linearVelocityTest(mocksFolder):
     magArr = []
     BFdiffArr = []
     dmagArr = []
+    dDecArr = []
+    dRAArr = []
     # Read in each mock. 
     for i in range(20):
         mockFile = '%svmock_Gz_highbias_c0p6_%s.dat' % (mocksFolder,str(i).zfill(2))
@@ -88,6 +91,9 @@ def linearVelocityTest(mocksFolder):
         g = data[:,[3,4,5,6,7,8,11]]
         # Calculate true SSBF
         trueBF = MLE_BF(g)
+        trueDec = getDec(trueBF[0],trueBF[1],trueBF[2])
+        trueRA = getRA(trueBF[0],trueBF[1])
+
         # Find galaxies within -20 < Dec < 0
         gInC = g[g[:,5]>-20]
         # Calculate mean radial velocity within -20 < Dec < 0 circle
@@ -96,11 +102,23 @@ def linearVelocityTest(mocksFolder):
         g[:,6] -= v
         # New SSBF
         newBF = MLE_BF(g)
+        newDec = getDec(newBF[0],newBF[1],newBF[2])
+        newRA = getRA(newBF[0],newBF[1])
+
         BFdiff = newBF-trueBF
-        print 'Old BF: ', trueBF, ', New BF: ', newBF
+        dDec = newDec - trueDec
+        dRA = newRA - trueRA
+
+        #print 'Old BF: ', trueBF, ', New BF: ', newBF
         print 'Change in BF: ', mag(BFdiff)
+        print 'Old Dec: ', trueDec, 'New Dec: ', newDec
+        print 'Change in Dec: ', dDec
+
         dmag = mag(newBF) - mag(trueBF)
         dmagArr.append(dmag)
+        dDecArr.append(dDec)
+        dRAArr.append(dRA)
+
         magArr.append(mag(BFdiff))
         BFdiffArr.append((BFdiff[0],BFdiff[1],BFdiff[2]))
         vArr.append(v)
@@ -108,9 +126,12 @@ def linearVelocityTest(mocksFolder):
     vArr = np.array(vArr)
     magArr = np.array(magArr)
     dmagArr = np.array(dmagArr)
+    dDecArr = np.array(dDecArr)
+    dRAArr = np.array(dRAArr)
 
     meanBFdiff = meanVector(BFdiffArr)
 
+    print ''
     print 'Mean radial v in circle: ', np.mean(vArr)
     print 'Variance: ',np.var(vArr)
     print 'Std: ', np.std(vArr)
@@ -126,6 +147,12 @@ def linearVelocityTest(mocksFolder):
 
     print 'Mean dmag: ', np.mean(dmagArr)
     print 'Std: ', np.std(dmagArr)
+
+    print 'Mean dDec: ', np.mean(dDecArr)
+    print 'Std: ', np.std(dDecArr)
+
+    print 'Mean dRA: ', np.mean(dRAArr)
+    print 'Std: ', np.std(dRAArr)
 
     return
 

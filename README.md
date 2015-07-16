@@ -5,7 +5,7 @@ Python program to calculate the Cosmic Variance expected in the 6dFGSv Zeropoint
 
 Performs a test of the cosmic variance in the 6dFGS zeropoint, and the resulting effect on the bulk flow, using the 6dFGSv LambdaCDM mock catalogues (described in Scrimgeour et al. 2015, in prep). 
 
-The program contains 2 tests:
+The program contains 2 tests that can be called by main():
 
 1) linearVelocityTest(): Uses the true linear peculiar velocities from the simulation, with no observational uncertainty. Normalies the true velocities to zero in the Great Circle.
 

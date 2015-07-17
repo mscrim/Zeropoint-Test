@@ -98,11 +98,6 @@ def linearVelocityTest(mocksFolder):
     magArr = []
     outBFArr = []
 
-    # Method 2: Calculate mean difference in mag, RA, Dec
-    #dmagArr = []
-    #dDecArr = []
-    #dRAArr = []
-
     vArr = []
     # Read in each mock. 
     for i in range(20):
@@ -137,19 +132,6 @@ def linearVelocityTest(mocksFolder):
         outBFArr.append((newBF[0],newBF[1],newBF[2]))
         print 'Change in BF: ', mag(BFdiff)
         
-        # Method 2
-        #trueDec = getDec(trueBF[0],trueBF[1],trueBF[2])
-        #trueRA = getRA(trueBF[0],trueBF[1])
-        #newDec = getDec(newBF[0],newBF[1],newBF[2])
-        #newRA = getRA(newBF[0],newBF[1])
-        #dDec = newDec - trueDec
-        #dRA = newRA - trueRA
-        #dmag = mag(newBF) - mag(trueBF)
-        #dmagArr.append(dmag)
-        #dDecArr.append(dDec)
-        #dRAArr.append(dRA)
-        #print 'Old Dec: ', trueDec, 'New Dec: ', newDec
-        #print 'Change in Dec: ', dDec
         print ''
 
     vArr = np.array(vArr)
@@ -169,18 +151,6 @@ def linearVelocityTest(mocksFolder):
                                                                meanOutBF[1], stdOutBF[1], 
                                                                meanOutBF[2], stdOutBF[2])
     print ''
-
-    # Method 2
-    #magArr = np.array(magArr)
-    #dmagArr = np.array(dmagArr)
-    #dDecArr = np.array(dDecArr)
-    #dRAArr = np.array(dRAArr)
-    #print 'Mean dmag: ', np.mean(dmagArr)
-    #print 'Std: ', np.std(dmagArr)
-    #print 'Mean dDec: ', np.mean(dDecArr)
-    #print 'Std: ', np.std(dDecArr)
-    #print 'Mean dRA: ', np.mean(dRAArr)
-    #print 'Std: ', np.std(dRAArr)
 
     return
 

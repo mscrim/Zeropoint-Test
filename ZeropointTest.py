@@ -30,6 +30,7 @@ def SS_BF(g):
     return u
 
 def MLE_BF(g):
+    ''' Maximum Likelihood Estimate Bulk Flow '''
     ngal = len(g)
     x_arr = g[:,0]
     y_arr = g[:,1]
@@ -52,15 +53,14 @@ def MLE_BF(g):
     return u
 
 def mag(vector):
-    if len(vector) != 3: raise Exception('mag function only accepts 3D vector')
+    if len(vector) != 3: 
+        raise Exception('mag function only accepts 3D vector')
     result = np.sqrt(vector[0]**2 + vector[1]**2 + vector[2]**2)
     return result
 
 def v_to_x(v_true, zobs, Dr):
     ngal = len(v_true)
     OM = 0.31
-    #zr = (1. + z_obs)/(1.+v_true/speedlight) - 1.
-    #Dr = cc.dxx_mpch_arr(ngal, zr, OM)
     Dz = cc.dxx_mpch_arr(ngal, zobs, OM)
     x = np.log10(Dz/Dr)
     return x
@@ -73,86 +73,114 @@ def x_to_v(x, z_obs, Dz, zfile):
 
 def meanVector(tuplelist):
     meanvec = [np.mean(y) for y in zip(*tuplelist)]
-    return meanvec
+    stdvec = [np.std(y) for y in zip(*tuplelist)]
+    return meanvec, stdvec
+
+def addBF(g,BF):
+    ''' Add a BF (3D vector) to a set of radial velocities vRad '''
+    x = g[:,0]
+    y = g[:,1]
+    z = g[:,2]
+    r = g[:,3]
+    v = g[:,6]
+    # radial BF component for each position
+    Brad = (x*BF[0] + y*BF[1] + z*BF[2])/r
+    return v + Brad
 
 def linearVelocityTest(mocksFolder):
     ''' Test Normalising Velocities to Zero '''
 
-    vArr = []
-    magArr = []
+    # Measured 6dF MV BF at RI = 50 Mpc/h
+    inBF = np.array([-208.,-99.,-91.])
+
+    # Method 1: Calculate mean vector difference in BF
     BFdiffArr = []
-    dmagArr = []
-    dDecArr = []
-    dRAArr = []
+    magArr = []
+    outBFArr = []
+
+    # Method 2: Calculate mean difference in mag, RA, Dec
+    #dmagArr = []
+    #dDecArr = []
+    #dRAArr = []
+
+    vArr = []
     # Read in each mock. 
     for i in range(20):
         mockFile = '%svmock_Gz_highbias_c0p6_%s.dat' % (mocksFolder,str(i).zfill(2))
         data = np.loadtxt(mockFile, comments='#')
+        #  x[Mpc/h]  y[Mpc/h]  z[Mpc/h]  D_c[Mpc/h]  RA  Dec  vpec[km/s]
         g = data[:,[3,4,5,6,7,8,11]]
-        # Calculate true SSBF
-        trueBF = MLE_BF(g)
-        trueDec = getDec(trueBF[0],trueBF[1],trueBF[2])
-        trueRA = getRA(trueBF[0],trueBF[1])
 
+        # Calculate true BF
+        trueBF = MLE_BF(g)
+        print 'trueBF: ', trueBF
         # Find galaxies within -20 < Dec < 0
         gInC = g[g[:,5]>-20]
         # Calculate mean radial velocity within -20 < Dec < 0 circle
         v = np.mean(gInC[:,6])
+        v = 50.
+        vArr.append(v)
+        # Subtract trueBF and add inBF. Calculate new BF
+        g[:,6] = addBF(g,(inBF-trueBF))
+        trueBF = MLE_BF(g)
+        print 'modBF: ', trueBF
         # Renormalise all velocities in mock to normalise Great Circle to zero
         g[:,6] -= v
-        # New SSBF
+        # Calcualte new BF
         newBF = MLE_BF(g)
-        newDec = getDec(newBF[0],newBF[1],newBF[2])
-        newRA = getRA(newBF[0],newBF[1])
+        print 'newBF: ', newBF
 
+        # Method 1
         BFdiff = newBF-trueBF
-        dDec = newDec - trueDec
-        dRA = newRA - trueRA
-
-        #print 'Old BF: ', trueBF, ', New BF: ', newBF
-        print 'Change in BF: ', mag(BFdiff)
-        print 'Old Dec: ', trueDec, 'New Dec: ', newDec
-        print 'Change in Dec: ', dDec
-
-        dmag = mag(newBF) - mag(trueBF)
-        dmagArr.append(dmag)
-        dDecArr.append(dDec)
-        dRAArr.append(dRA)
-
-        magArr.append(mag(BFdiff))
         BFdiffArr.append((BFdiff[0],BFdiff[1],BFdiff[2]))
-        vArr.append(v)
+        magArr.append(mag(BFdiff))
+        outBFArr.append((newBF[0],newBF[1],newBF[2]))
+        print 'Change in BF: ', mag(BFdiff)
+        
+        # Method 2
+        #trueDec = getDec(trueBF[0],trueBF[1],trueBF[2])
+        #trueRA = getRA(trueBF[0],trueBF[1])
+        #newDec = getDec(newBF[0],newBF[1],newBF[2])
+        #newRA = getRA(newBF[0],newBF[1])
+        #dDec = newDec - trueDec
+        #dRA = newRA - trueRA
+        #dmag = mag(newBF) - mag(trueBF)
+        #dmagArr.append(dmag)
+        #dDecArr.append(dDec)
+        #dRAArr.append(dRA)
+        #print 'Old Dec: ', trueDec, 'New Dec: ', newDec
+        #print 'Change in Dec: ', dDec
+        print ''
 
     vArr = np.array(vArr)
-    magArr = np.array(magArr)
-    dmagArr = np.array(dmagArr)
-    dDecArr = np.array(dDecArr)
-    dRAArr = np.array(dRAArr)
-
-    meanBFdiff = meanVector(BFdiffArr)
-
     print ''
-    print 'Mean radial v in circle: ', np.mean(vArr)
-    print 'Variance: ',np.var(vArr)
-    print 'Std: ', np.std(vArr)
+    print 'Mean radial v in circle: ', np.mean(vArr), ' pm ', np.std(vArr)
     print ''
 
-    print 'Mean BF diff mag: ', np.mean(magArr)
-    print 'Std: ', np.std(magArr)
-    print ''
-
-    print 'Mean BF diff: ', meanBFdiff
+    # Method 1
+    meanBFdiff, stdBFdiff = meanVector(BFdiffArr)
+    meanOutBF, stdOutBF= meanVector(outBFArr)
+    print 'Mean BF diff: (%d pm %d, %d pm %d, %d pm %d)' %  (meanBFdiff[0], stdBFdiff[0], 
+                                                             meanBFdiff[1], stdBFdiff[1], 
+                                                             meanBFdiff[2], stdBFdiff[2])
     print 'Mag: ', mag(meanBFdiff)
+    print 'Mean BF diff mag: ', np.mean(magArr), ' pm ', np.std(magArr)
+    print 'Mean output BF: (%d pm %d, %d pm %d, %d pm %d)' %  (meanOutBF[0], stdOutBF[0], 
+                                                               meanOutBF[1], stdOutBF[1], 
+                                                               meanOutBF[2], stdOutBF[2])
     print ''
 
-    print 'Mean dmag: ', np.mean(dmagArr)
-    print 'Std: ', np.std(dmagArr)
-
-    print 'Mean dDec: ', np.mean(dDecArr)
-    print 'Std: ', np.std(dDecArr)
-
-    print 'Mean dRA: ', np.mean(dRAArr)
-    print 'Std: ', np.std(dRAArr)
+    # Method 2
+    #magArr = np.array(magArr)
+    #dmagArr = np.array(dmagArr)
+    #dDecArr = np.array(dDecArr)
+    #dRAArr = np.array(dRAArr)
+    #print 'Mean dmag: ', np.mean(dmagArr)
+    #print 'Std: ', np.std(dmagArr)
+    #print 'Mean dDec: ', np.mean(dDecArr)
+    #print 'Std: ', np.std(dDecArr)
+    #print 'Mean dRA: ', np.mean(dRAArr)
+    #print 'Std: ', np.std(dRAArr)
 
     return
 
